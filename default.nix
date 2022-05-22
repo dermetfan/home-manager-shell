@@ -3,7 +3,6 @@
   nixpkgs, home-manager,
   enable ? [],
   imports ? [],
-  config ? {},
   args ? {},
 }:
 
@@ -62,13 +61,12 @@ pkgs.writeShellApplication {
   text = ''
     set -x
 
-    declare -a enable imports config args
+    declare -a enable imports args
 
     while getopts :e:i:c:a:p:l: opt; do
       case "$opt" in
         e) enable+=("$OPTARG.enable = true;"$'\n') ;;
         i) imports+=("$OPTARG"$'\n') ;;
-        c) config+=("$OPTARG;"$'\n') ;;
         a) args+=("$OPTARG;"$'\n') ;;
         p) nixpkgs="$OPTARG" ;;
         l) homeManager="$OPTARG" ;;
@@ -80,11 +78,6 @@ pkgs.writeShellApplication {
     enable+=(${lib.escapeShellArgs enable})
     imports+=(${lib.escapeShellArgs imports})
 
-    staticConfig=$(
-      nix-instantiate --eval --strict \
-        --argstr config ${lib.escapeShellArg (__toJSON config)} \
-        --expr '{ config }: __fromJSON config'
-    )
     staticArgs=$(
       nix-instantiate --eval --strict \
         --argstr arg ${lib.escapeShellArg (__toJSON args)} \
@@ -132,28 +125,28 @@ pkgs.writeShellApplication {
       outputs = { self, target, nixpkgs, home-manager }: let
         vars = $vars;
       in {
-        packages.\''${vars.system}.homeManagerConfiguration = home-manager.lib.homeManagerConfiguration (vars // rec {
-          pkgs =
-            target.outputs.legacyPackages.\''${vars.system} or
-            nixpkgs.outputs.legacyPackages.\''${vars.system};
+        packages.\''${vars.system}.homeManagerConfiguration = home-manager.lib.homeManagerConfiguration (
+          vars // nixpkgs.lib.recursiveUpdate rec {
+            pkgs =
+              target.outputs.legacyPackages.\''${vars.system} or
+              nixpkgs.outputs.legacyPackages.\''${vars.system};
 
-          extraSpecialArgs.self = target;
+            extraSpecialArgs.self = target;
 
-          configuration = { self, config, lib, pkgs, ... }: rec {
-            imports = [ ''${imports[*]} ] ++
-              lib.optional
-                (self.outputs.homeManagerProfiles.\''${vars.username} or null != null)
-                self.outputs.homeManagerProfiles.\''${vars.username};
+            configuration = { self, config, lib, pkgs, ... }: rec {
+              imports = [ ''${imports[*]} ] ++
+                lib.optional
+                  (self.outputs.homeManagerProfiles.\''${vars.username} or null != null)
+                  self.outputs.homeManagerProfiles.\''${vars.username};
 
-            systemd.user.startServices = lib.mkForce false;
+              systemd.user.startServices = lib.mkForce false;
 
-            ''${enable[*]}
+              ''${enable[*]}
+            };
 
-            ''${config[*]}
-          } // $staticConfig;
-
-          ''${args[*]}
-        } // $staticArgs);
+            ''${args[*]}
+          } $staticArgs
+        );
       };
     }
     EOF
