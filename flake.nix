@@ -8,7 +8,7 @@
 
   outputs = { self, nixpkgs, flake-utils, home-manager, ... }:
     flake-utils.lib.eachDefaultSystem (system: rec {
-      lib = { target ? null } @ args: import ./. ({
+      lib = { target ? null, ... } @ args: import ./. ({
         inherit target system nixpkgs home-manager;
       } // args);
 
