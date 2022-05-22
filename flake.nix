@@ -8,12 +8,8 @@
 
   outputs = { self, nixpkgs, flake-utils, home-manager, ... }:
     flake-utils.lib.eachDefaultSystem (system: rec {
-      lib = { target ? null, ... } @ args: import ./. ({
-        inherit target system nixpkgs home-manager;
-      } // args);
-
       packages = rec {
-        home-manager-shell = lib {};
+        home-manager-shell = self.outputs.lib { inherit system; };
         default = home-manager-shell;
       };
       defaultPackage = packages.home-manager-shell;
@@ -25,5 +21,9 @@
         default = home-manager-shell;
       };
       defaultApp = apps.home-manager-shell;
-    });
+    }) // {
+      lib = { target ? null, ... } @ args: import ./. ({
+        inherit target nixpkgs home-manager;
+      } // args);
+    };
 }
