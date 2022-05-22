@@ -83,48 +83,69 @@ pkgs.writeShellApplication {
     target="$1"
     shift
   '') + ''
-    activationPackage=$(
-      #shellcheck disable=SC2016
-      nix build activationPackage --json --impure \
+    WD="$PWD"
+    function cleanup {
+      cd "$WD"
+      rm -rf "$TEMPDIR"
+    }
+    trap cleanup EXIT
+    TEMPDIR=$(mktemp -d)
+    cd "$TEMPDIR"
+
+    vars=$(
+      nix-instantiate --eval --strict \
         --argstr system ${lib.escapeShellArg system} \
-        --argstr nixpkgsFlake "$nixpkgs" \
-        --argstr homeManagerFlake "$homeManager" \
-        --argstr target "$target" \
-        --expr '
-          { target, system, nixpkgsFlake, homeManagerFlake }:
-          let
-            self = __getFlake target;
-            nixpkgs = __getFlake nixpkgsFlake;
-            home-manager = __getFlake homeManagerFlake;
-          in
-          home-manager.lib.homeManagerConfiguration rec {
-            username = __getEnv "USER";
-            homeDirectory = __getEnv "HOME";
+        --argstr username "$USER" \
+        --argstr homeDirectory "$HOME" \
+        --expr '{ ... } @ args: args'
+    )
 
-            inherit system;
-            pkgs = nixpkgs.outputs.legacyPackages.''${system};
+    cat > flake.nix <<EOF
+    {
+      inputs = {
+        target.url = "$target";
+        nixpkgs.url = "$nixpkgs";
+        home-manager.url = "$homeManager";
+      };
 
-            extraSpecialArgs = { inherit self; };
+      outputs = { self, target, nixpkgs, home-manager }: let
+        vars = $vars;
+      in {
+        packages.\''${vars.system}.homeManagerConfiguration = home-manager.lib.homeManagerConfiguration (vars // rec {
+          pkgs =
+            target.outputs.legacyPackages.\''${vars.system} or
+            nixpkgs.outputs.legacyPackages.\''${vars.system};
 
-            configuration = { self, config, lib, pkgs, ... }: rec {
-              imports = [ '"''${imports[*]}"' ] ++
-                lib.optional
-                  (self.outputs.homeManagerProfiles.''${username} or null != null)
-                  self.outputs.homeManagerProfiles.''${username};
+          extraSpecialArgs.self = target;
 
-              systemd.user.startServices = lib.mkForce false;
+          configuration = { self, config, lib, pkgs, ... }: rec {
+            imports = [ ''${imports[*]} ] ++
+              lib.optional
+                (self.outputs.homeManagerProfiles.\''${vars.username} or null != null)
+                self.outputs.homeManagerProfiles.\''${vars.username};
 
-              '"''${enable[*]}"'
+            systemd.user.startServices = lib.mkForce false;
 
-              '"''${config[*]}"'
-            };
+            ''${enable[*]}
 
-            '"''${args[*]}"'
-          }
-        ' \
+            ''${config[*]}
+          };
+
+          ''${args[*]}
+        });
+      };
+    }
+    EOF
+
+    nix flake lock
+
+    activationPackage=$(
+      nix build .#homeManagerConfiguration.activationPackage --json --impure \
       | jq -r '.[].outputs.out'
     )
 
-    exec homeManagerShell-launch "$activationPackage" "$@"
+    cleanup
+
+    exec home-manager-shell-launch "$activationPackage" "$@"
   '';
 }
