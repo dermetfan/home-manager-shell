@@ -14,8 +14,6 @@ let
     name = "home-manager-shell-launch";
     runtimeInputs = [ nixpkgs.legacyPackages.${system}.proot ];
     text = ''
-      set -x
-
       activationPackage="$1"
       shift
 
@@ -59,8 +57,6 @@ pkgs.writeShellApplication {
   name = "home-manager-shell";
   runtimeInputs = [ launch pkgs.jq ];
   text = ''
-    set -x
-
     declare -a enable imports args
 
     while getopts :e:i:c:a:p:l: opt; do
