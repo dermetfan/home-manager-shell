@@ -1,4 +1,11 @@
-{ target, system, nixpkgs, home-manager }:
+{
+  target, system,
+  nixpkgs, home-manager,
+  enable ? [],
+  imports ? [],
+  config ? {},
+  args ? {},
+}:
 
 let
   pkgs = nixpkgs.legacyPackages.${system};
@@ -70,6 +77,20 @@ pkgs.writeShellApplication {
     done
     shift $((OPTIND - 1))
 
+    enable+=(${lib.escapeShellArgs enable})
+    imports+=(${lib.escapeShellArgs imports})
+
+    staticConfig=$(
+      nix-instantiate --eval --strict \
+        --argstr config ${lib.escapeShellArg (__toJSON config)} \
+        --expr '{ config }: __fromJSON config'
+    )
+    staticArgs=$(
+      nix-instantiate --eval --strict \
+        --argstr arg ${lib.escapeShellArg (__toJSON args)} \
+        --expr '{ arg }: __fromJSON arg'
+    )
+
     if [[ -z "''${nixpkgs:-}" ]]; then
       nixpkgs=${lib.escapeShellArg nixpkgs}
     fi
@@ -129,10 +150,10 @@ pkgs.writeShellApplication {
             ''${enable[*]}
 
             ''${config[*]}
-          };
+          } // $staticConfig;
 
           ''${args[*]}
-        });
+        } // $staticArgs);
       };
     }
     EOF
