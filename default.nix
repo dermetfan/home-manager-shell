@@ -78,12 +78,6 @@ pkgs.writeShellApplication {
     enable+=(${lib.escapeShellArgs enable})
     imports+=(${lib.escapeShellArgs imports})
 
-    staticArgs=$(
-      nix-instantiate --eval --strict \
-        --argstr arg ${lib.escapeShellArg (__toJSON args)} \
-        --expr '{ arg }: __fromJSON arg'
-    )
-
     if [[ -z "''${nixpkgs:-}" ]]; then
       nixpkgs=${lib.escapeShellArg nixpkgs}
     fi
@@ -111,7 +105,11 @@ pkgs.writeShellApplication {
         --argstr system ${lib.escapeShellArg system} \
         --argstr username "$USER" \
         --argstr homeDirectory "$HOME" \
-        --expr '{ ... } @ args: args'
+        --argstr args ${lib.escapeShellArg (__toJSON args)} \
+        --expr '{ ... } @ args: {
+          hmArgs = { inherit (args) system username homeDirectory; };
+          args = __fromJSON args.args;
+        }'
     )
 
     cat > flake.nix <<EOF
@@ -123,21 +121,22 @@ pkgs.writeShellApplication {
       };
 
       outputs = { self, target, nixpkgs, home-manager }: let
-        vars = $vars;
+        inherit ($vars) hmArgs args;
+        inherit (hmArgs) system username;
       in {
-        packages.\''${vars.system}.homeManagerConfiguration = home-manager.lib.homeManagerConfiguration (
-          vars // nixpkgs.lib.recursiveUpdate rec {
+        packages.\''${system}.homeManagerConfiguration = home-manager.lib.homeManagerConfiguration (
+          hmArgs // nixpkgs.lib.recursiveUpdate rec {
             pkgs =
-              target.outputs.legacyPackages.\''${vars.system} or
-              nixpkgs.outputs.legacyPackages.\''${vars.system};
+              target.outputs.legacyPackages.\''${system} or
+              nixpkgs.outputs.legacyPackages.\''${system};
 
             extraSpecialArgs.self = target;
 
             configuration = { self, config, lib, pkgs, ... }: rec {
               imports = [ ''${imports[*]} ] ++
                 lib.optional
-                  (self.outputs.homeManagerProfiles.\''${vars.username} or null != null)
-                  self.outputs.homeManagerProfiles.\''${vars.username};
+                  (self.outputs.homeManagerProfiles.\''${username} or null != null)
+                  self.outputs.homeManagerProfiles.\''${username};
 
               systemd.user.startServices = lib.mkForce false;
 
@@ -145,7 +144,7 @@ pkgs.writeShellApplication {
             };
 
             ''${args[*]}
-          } $staticArgs
+          } args
         );
       };
     }
