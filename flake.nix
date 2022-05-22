@@ -12,7 +12,7 @@
         home-manager-shell = self.outputs.lib { inherit system; };
         default = home-manager-shell;
       };
-      defaultPackage = packages.home-manager-shell;
+      defaultPackage = packages.default;
 
       apps = rec {
         home-manager-shell = flake-utils.lib.mkApp {
@@ -20,7 +20,7 @@
         };
         default = home-manager-shell;
       };
-      defaultApp = apps.home-manager-shell;
+      defaultApp = apps.default;
     }) // {
       lib = { target ? null, ... } @ args: import ./. ({
         inherit target nixpkgs home-manager;
