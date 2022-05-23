@@ -56,7 +56,7 @@ pkgs.writeShellApplication {
     }
     trap cleanup EXIT
     TEMPDIR=$(mktemp -d)
-    pushd "$TEMPDIR"
+    pushd "$TEMPDIR" > /dev/null
 
     vars=$(
       nix-instantiate --eval --strict \
@@ -117,7 +117,7 @@ pkgs.writeShellApplication {
       | jq -r '.[].outputs.out'
     )
 
-    popd
+    popd > /dev/null
     cleanup
 
     declare -a prootArgs
