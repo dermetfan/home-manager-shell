@@ -17,7 +17,7 @@ pkgs.writeShellApplication {
   text = ''
     declare -a enable imports args
 
-    while getopts :e:i:c:a:p:l:ubv opt; do
+    while getopts :e:i:c:a:p:l:bnv opt; do
       case "$opt" in
         e) enable+=("$OPTARG.enable = true;"$'\n') ;;
         i) imports+=("$OPTARG"$'\n') ;;
@@ -25,6 +25,7 @@ pkgs.writeShellApplication {
         p) nixpkgs="$OPTARG" ;;
         l) homeManager="$OPTARG" ;;
         b) bare=1 ;;
+        n) dry=1 ;;
         v) verbose=1 ;;
         *) >&2 echo 'Unknown flag'; exit 1 ;;
       esac
@@ -118,17 +119,29 @@ pkgs.writeShellApplication {
     )
 
     popd > /dev/null
-    cleanup
 
-    declare -a prootArgs
-    while read -r; do
-      prootArgs+=(-b "$REPLY":"$HOME"/"''${REPLY#"$activationPackage"/home-files/}")
-    done < <(find "$activationPackage"/home-files/ -not -type d)
+    if [[ -n "''${dry:-}" ]]; then
+      echo >&2 'Flake generated in:'
+      echo "$TEMPDIR"
+      echo >&2 'This directory will NOT be cleaned up.'
+
+      trap EXIT
+      exit 0
+    fi
+
+    cleanup
+    trap EXIT
 
     function launch {
+      declare -a prootArgs
+      while read -r; do
+        prootArgs+=(-b "$REPLY":"$HOME"/"''${REPLY#"$activationPackage"/home-files/}")
+      done < <(find "$activationPackage"/home-files/ -not -type d)
+
       PATH="''${PATH:-}''${PATH:+:}"
       PATH="$PATH:$activationPackage/home-path/bin"
       PATH="$PATH:$activationPackage/home-path/sbin"
+
       exec proot \
         -R / \
         -w "$PWD" \
