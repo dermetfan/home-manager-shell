@@ -9,67 +9,31 @@
 let
   pkgs = nixpkgs.legacyPackages.${system};
   inherit (nixpkgs) lib;
-
-  launch = pkgs.writeShellApplication {
-    name = "home-manager-shell-launch";
-    runtimeInputs = [ nixpkgs.legacyPackages.${system}.proot ];
-    text = ''
-      activationPackage="$1"
-      shift
-
-      TEMPDIR=$(mktemp -d)
-      trap 'rm -rf "$TEMPDIR"' EXIT
-
-      mkdir -p "$TEMPDIR"/{profile,home}
-
-      proot \
-        -R / \
-        -b "$TEMPDIR"/profile:/nix/var/nix/profiles/per-user/"$USER" \
-        -b "$TEMPDIR"/home:"$HOME" \
-        -w "$HOME" \
-        "$activationPackage"/activate
-
-      declare -a prootArgs
-      while read -r; do
-        prootArgs+=(-b "$REPLY":"$HOME"/"''${REPLY#"$TEMPDIR"/home/}")
-      done < <(find "$TEMPDIR"/home -not -type d)
-
-      function launch {
-        proot \
-          -R / \
-          -w "$PWD" \
-          "''${prootArgs[@]}" \
-          "$@"
-      }
-
-      if [[ -n $* ]]; then
-        launch "$@"
-      elif [[ -n "$SHELL" ]]; then
-        launch "$SHELL"
-      else
-        launch
-      fi
-    '';
-  };
 in
 
 pkgs.writeShellApplication {
   name = "home-manager-shell";
-  runtimeInputs = [ launch pkgs.jq ];
+  runtimeInputs = with pkgs; [ proot jq ];
   text = ''
     declare -a enable imports args
 
-    while getopts :e:i:c:a:p:l: opt; do
+    while getopts :e:i:c:a:p:l:ubv opt; do
       case "$opt" in
         e) enable+=("$OPTARG.enable = true;"$'\n') ;;
         i) imports+=("$OPTARG"$'\n') ;;
         a) args+=("$OPTARG;"$'\n') ;;
         p) nixpkgs="$OPTARG" ;;
         l) homeManager="$OPTARG" ;;
+        b) bare=1 ;;
+        v) verbose=1 ;;
         *) >&2 echo 'Unknown flag'; exit 1 ;;
       esac
     done
     shift $((OPTIND - 1))
+
+    if [[ -n "''${verbose:-}" ]]; then
+      set -x
+    fi
 
     enable+=(${lib.escapeShellArgs enable})
     imports+=(${lib.escapeShellArgs imports})
@@ -87,14 +51,12 @@ pkgs.writeShellApplication {
     target="$1"
     shift
   '') + ''
-    WD="$PWD"
     function cleanup {
-      cd "$WD"
       rm -rf "$TEMPDIR"
     }
     trap cleanup EXIT
     TEMPDIR=$(mktemp -d)
-    cd "$TEMPDIR"
+    pushd "$TEMPDIR"
 
     vars=$(
       nix-instantiate --eval --strict \
@@ -102,9 +64,11 @@ pkgs.writeShellApplication {
         --argstr username "$USER" \
         --argstr homeDirectory "$HOME" \
         --argstr args ${lib.escapeShellArg (__toJSON args)} \
+        --argstr bare "''${bare:-}" \
         --expr '{ ... } @ args: {
           hmArgs = { inherit (args) system username homeDirectory; };
           args = __fromJSON args.args;
+          bare = args.bare != "";
         }'
     )
 
@@ -117,7 +81,7 @@ pkgs.writeShellApplication {
       };
 
       outputs = { self, target, nixpkgs, home-manager }: let
-        inherit ($vars) hmArgs args;
+        inherit ($vars) hmArgs args bare;
         inherit (hmArgs) system username;
       in {
         packages.\''${system}.homeManagerConfiguration = home-manager.lib.homeManagerConfiguration (
@@ -131,7 +95,7 @@ pkgs.writeShellApplication {
             configuration = { self, config, lib, pkgs, ... }: rec {
               imports = [ ''${imports[*]} ] ++
                 lib.optional
-                  (self.outputs.homeManagerProfiles.\''${username} or null != null)
+                  (!bare && self.outputs.homeManagerProfiles.\''${username} or null != null)
                   self.outputs.homeManagerProfiles.\''${username};
 
               systemd.user.startServices = lib.mkForce false;
@@ -153,8 +117,31 @@ pkgs.writeShellApplication {
       | jq -r '.[].outputs.out'
     )
 
+    popd
     cleanup
 
-    exec home-manager-shell-launch "$activationPackage" "$@"
+    declare -a prootArgs
+    while read -r; do
+      prootArgs+=(-b "$REPLY":"$HOME"/"''${REPLY#"$activationPackage"/home-files/}")
+    done < <(find "$activationPackage"/home-files/ -not -type d)
+
+    function launch {
+      PATH="''${PATH:-}''${PATH:+:}"
+      PATH="$PATH:$activationPackage/home-path/bin"
+      PATH="$PATH:$activationPackage/home-path/sbin"
+      exec proot \
+        -R / \
+        -w "$PWD" \
+        "''${prootArgs[@]}" \
+        "$@"
+    }
+
+    if [[ -n $* ]]; then
+      launch "$@"
+    elif [[ -n "$SHELL" ]]; then
+      launch "$SHELL"
+    else
+      launch
+    fi
   '';
 }
