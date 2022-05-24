@@ -99,8 +99,6 @@ pkgs.writeShellApplication {
                   (!bare && self.outputs.homeManagerProfiles.\''${username} or null != null)
                   self.outputs.homeManagerProfiles.\''${username};
 
-              systemd.user.startServices = lib.mkForce false;
-
               ''${enable[*]}
             };
 
