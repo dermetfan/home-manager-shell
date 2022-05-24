@@ -9,16 +9,23 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, home-manager }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    home-manager,
+  }:
     flake-utils.lib.eachDefaultSystem (system: rec {
       packages = rec {
-        home-manager-shell = self.outputs.lib { inherit system; };
+        home-manager-shell = self.outputs.lib {inherit system;};
         default = home-manager-shell;
       };
       defaultPackage = packages.default;
-    }) // {
-      lib = { self ? null, ... } @ args: import ./. ({
-        inherit self nixpkgs home-manager;
-      } // args);
+
+      formatter = nixpkgs.legacyPackages.${system}.alejandra;
+    })
+    // {
+      lib = {self ? null, ...} @ args:
+        import ./. ({inherit self nixpkgs home-manager;} // args);
     };
 }

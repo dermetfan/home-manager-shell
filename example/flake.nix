@@ -5,10 +5,16 @@
     flake-utils.follows = "home-manager-shell/flake-utils";
   };
 
-  outputs = { self, flake-utils, home-manager, home-manager-shell }:
+  outputs = {
+    self,
+    flake-utils,
+    home-manager,
+    home-manager-shell,
+  }:
     flake-utils.lib.eachDefaultSystem (system: {
-      packages.home-manager-shell = home-manager-shell.lib { inherit self system; };
-    }) // {
+      packages.home-manager-shell = home-manager-shell.lib {inherit self system;};
+    })
+    // {
       homeManagerProfiles.foo.programs.bat = {
         enable = true;
         config.style = "numbers";
