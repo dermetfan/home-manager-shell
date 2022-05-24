@@ -15,14 +15,58 @@
     flake-utils,
     home-manager,
   }:
-    flake-utils.lib.eachDefaultSystem (system: rec {
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = nixpkgs.legacyPackages.${system};
+    in rec {
       packages = rec {
         home-manager-shell = self.outputs.lib {inherit system;};
         default = home-manager-shell;
       };
       defaultPackage = packages.default;
 
-      formatter = nixpkgs.legacyPackages.${system}.alejandra;
+      formatter = pkgs.alejandra;
+
+      checks.example =
+        pkgs.runCommandNoCC "example" {
+          __impure = true;
+          nativeBuildInputs = with pkgs; [nix cacert diffutils];
+          requiredSystemFeatures = ["recursive-nix"];
+          NIX_CONFIG = ''
+            extra-experimental-features = nix-command flakes
+          '';
+        } ''
+          mkdir home
+          export HOME="$PWD/home"
+          export USER=nobody
+
+          cp -r ${self} src
+          cd src
+          chmod -R +w .
+          export home_manager_shell="$PWD"
+
+          cd example
+
+          substituteAllInPlace flake.nix
+
+          nix run .#home-manager-shell --no-write-lock-file -- \
+            -i '{ home.file.test.text = "test"; }' \
+            cat \
+              ~/test <(echo) \
+              ~/.config/bat/config \
+          | tee actual
+
+          cat > expected <<EOF
+          test
+          --style='numbers'
+          EOF
+
+          if [[ "$(< actual)" != "$(< expected)" ]]; then
+            diff --suppress-common-lines expected actual
+            exit 1
+          fi
+
+          touch $out
+        '';
     })
     // {
       lib = {self ? null, ...} @ args:
