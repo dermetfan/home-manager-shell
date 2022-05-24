@@ -9,7 +9,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, home-manager, ... }:
+  outputs = { self, nixpkgs, flake-utils, home-manager }:
     flake-utils.lib.eachDefaultSystem (system: rec {
       packages = rec {
         home-manager-shell = self.outputs.lib { inherit system; };
