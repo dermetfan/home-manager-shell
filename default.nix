@@ -85,8 +85,9 @@ pkgs.writeShellApplication {
       outputs = { target, nixpkgs, home-manager, ... }: let
         inherit ($vars) args bare;
         inherit (args) system username;
-      in {
-        packages.\''${system}.homeManagerConfiguration = home-manager.lib.homeManagerConfiguration (
+      in rec {
+        defaultPackage.\''${system} = packages.\''${system}.default;
+        packages.\''${system}.default = (home-manager.lib.homeManagerConfiguration (
           nixpkgs.lib.recursiveUpdate rec {
             pkgs =
               target.outputs.legacyPackages.\''${system} or
@@ -105,7 +106,7 @@ pkgs.writeShellApplication {
 
             ''${args[*]}
           } args
-        );
+        )).activationPackage;
       };
     }
     EOF
@@ -113,8 +114,7 @@ pkgs.writeShellApplication {
     nix flake lock
 
     activationPackage=$(
-      nix build .#homeManagerConfiguration.activationPackage --json --impure \
-      | jq -r '.[].outputs.out'
+      nix build --json --impure | jq -r '.[].outputs.out'
     )
 
     popd > /dev/null
