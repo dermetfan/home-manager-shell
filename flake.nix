@@ -3,7 +3,10 @@
     # needs proot 5.3.0 that fixes crashes
     nixpkgs.url = github:NixOS/nixpkgs;
     flake-utils.url = github:numtide/flake-utils;
-    home-manager.url = github:nix-community/home-manager;
+    home-manager = {
+      url = github:nix-community/home-manager;
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, flake-utils, home-manager, ... }:
