@@ -1,5 +1,5 @@
 {
-  target, system,
+  self, system,
   nixpkgs, home-manager,
   enable ? [],
   imports ? [],
@@ -46,8 +46,8 @@ pkgs.writeShellApplication {
     if [[ -z "''${homeManager:-}" ]]; then
       homeManager=${lib.escapeShellArg home-manager}
     fi
-  '' + (if target != null then ''
-    target=${lib.escapeShellArg target}
+  '' + (if self != null then ''
+    target=${lib.escapeShellArg self}
   '' else ''
     target="$1"
     shift

@@ -22,8 +22,8 @@
       };
       defaultApp = apps.default;
     }) // {
-      lib = { target ? null, ... } @ args: import ./. ({
-        inherit target nixpkgs home-manager;
+      lib = { self ? null, ... } @ args: import ./. ({
+        inherit self nixpkgs home-manager;
       } // args);
     };
 }
