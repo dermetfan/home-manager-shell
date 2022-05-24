@@ -16,14 +16,6 @@
         default = home-manager-shell;
       };
       defaultPackage = packages.default;
-
-      apps = rec {
-        home-manager-shell = flake-utils.lib.mkApp {
-          drv = packages.home-manager-shell;
-        };
-        default = home-manager-shell;
-      };
-      defaultApp = apps.default;
     }) // {
       lib = { self ? null, ... } @ args: import ./. ({
         inherit self nixpkgs home-manager;
