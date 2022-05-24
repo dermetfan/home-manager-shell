@@ -67,8 +67,9 @@ pkgs.writeShellApplication {
         --argstr args ${lib.escapeShellArg (__toJSON args)} \
         --argstr bare "''${bare:-}" \
         --expr '{ ... } @ args: {
-          hmArgs = { inherit (args) system username homeDirectory; };
-          args = __fromJSON args.args;
+          args =
+            { inherit (args) system username homeDirectory; } //
+            __fromJSON args.args;
           bare = args.bare != "";
         }'
     )
@@ -81,12 +82,12 @@ pkgs.writeShellApplication {
         home-manager.url = "$homeManager";
       };
 
-      outputs = { self, target, nixpkgs, home-manager }: let
-        inherit ($vars) hmArgs args bare;
-        inherit (hmArgs) system username;
+      outputs = { target, nixpkgs, home-manager, ... }: let
+        inherit ($vars) args bare;
+        inherit (args) system username;
       in {
         packages.\''${system}.homeManagerConfiguration = home-manager.lib.homeManagerConfiguration (
-          hmArgs // nixpkgs.lib.recursiveUpdate rec {
+          nixpkgs.lib.recursiveUpdate rec {
             pkgs =
               target.outputs.legacyPackages.\''${system} or
               nixpkgs.outputs.legacyPackages.\''${system};
