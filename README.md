@@ -4,32 +4,43 @@ Spawns a shell in a home-manager profile. Like nix-shell for home-manager.
 
 Builds your profile, sets `$PATH` to its `/bin`, and bind-mounts its files using [proot](https://proot-me.github.io/).
 
-## Examples
-
-Have a look at the [example flake](example/flake.nix). It implements all supported use cases.
-
-Use your home-manager profile on a friend's machine:
-
-	USER=myUserName nix run sourcehut:~dermetfan/home-manager-shell github:your/flake # FIXME USER= has no effect
-
 ## Usage
 
-If the target flake provides a module in the `homeManagerProfiles.$USER` output it will be imported unless `-b` is given.
+If the target flake provides a module in the `homeManagerProfiles.$USER` output it will be imported (unless `-b` is given).
+
+Otherwise use `-i` to add custom imports. `self`, `config`, `lib`, and `pkgs` are available in its scope.
+
+You can set the `USER` and `HOME` environment variables to adapt the build to your current machine.
+
+### Examples
+
+Use your home-manager profile on a friend's machine without installing it:
+
+	USER=my_user nix run sourcehut:~dermetfan/home-manager-shell github:your/flake
+
+Try a friend's home-manager profile without installing it:
+
+	nix run sourcehut:~dermetfan/home-manager-shell github:friends/flake
+
+Run in a temporary home directory ([library](#library) usage assumed for shorter example):
+
+	HOME=/tmp/test-home nix run github:your/flake#app
 
 ### Standalone
 
-You can run against any arbitrary flake.
+You can run against any arbitrary flake:
 
-	home-manager-shell [options] <flake-ref> [command] [args]
+	home-manager-shell [OPTION]… FLAKE_REF [COMMAND]…
 
 ### Library
 
-See the [example flake](example/flake.nix).
+You can add an app to your flake for a shorter command line and static configuration.
+See the [example flake](example/flake.nix) on how to do this.
 
 Once you added such an app to your flake you can run it like this:
 
-	nix run github:your/flake#app [options] [command] [args]
+	nix run github:your/flake#app [OPTION]… [COMMAND]…
 
-## CLI Options
+### CLI Options
 
 See [cli.txt](cli.txt).
