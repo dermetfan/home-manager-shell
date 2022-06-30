@@ -17,7 +17,24 @@ in
       ''
         declare -a enable imports args
 
-        while getopts :e:i:c:a:p:l:bnv opt; do
+        function usage {
+          {
+            echo 'Usage:'
+            echo
+            #shellcheck disable=SC2016
+            echo ${
+              lib.pipe ./cli.txt [
+                lib.fileContents
+                (lib.splitString "\n")
+                (map (line: "\t" + line))
+                (lib.concatStringsSep "\n")
+                lib.escapeShellArg
+              ]
+            }
+          } >&2
+        }
+
+        while getopts :e:i:c:a:p:l:bnvh opt; do
           case "$opt" in
             e) enable+=("$OPTARG.enable = true;"$'\n') ;;
             i) imports+=("$OPTARG"$'\n') ;;
@@ -27,7 +44,16 @@ in
             b) bare=1 ;;
             n) dry=1 ;;
             v) verbose=1 ;;
-            *) >&2 echo 'Unknown flag'; exit 1 ;;
+            h)
+              usage
+              exit
+              ;;
+            *)
+              >&2 echo 'Unknown flag'
+              >&2 echo
+              usage
+              exit 1
+              ;;
           esac
         done
         shift $((OPTIND - 1))

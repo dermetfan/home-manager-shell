@@ -1,0 +1,16 @@
+Standalone:	home-manager-shell    [OPTION]… FLAKE_REF [COMMAND]…
+As library:	github:your/flake#app [OPTION]…           [COMMAND]…
+
+-e	MODULE	Module to enable in the configuration. Can be given multiple times.
+		Example:	programs.bat
+-i	LINE	Line to add to the configuration's `imports` list verbatim. Can be given multiple times.
+		Example:	{ home.file.foo.text = "bar"; }
+-a	LINE	Line to add to the build arguments verbatim, will be terminated by `;`. Can be given multiple times.
+		Example:	extraSpecialArgs.x = 1
+-p	FLAKE	Override the nixpkgs flake.
+		Example:	github:NixOS/nixpkgs/release-22.05
+-l	FLAKE	Override the home-manager flake.
+		Example:	github:nix-community/home-manager/release-22.05
+-b		Do not import `homeManagerProfiles.$USER` even if it exists.
+-n		Only write the temporary flake and exit.
+-v		Verbose output.

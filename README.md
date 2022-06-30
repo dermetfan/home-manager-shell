@@ -32,11 +32,4 @@ Once you added such an app to your flake you can run it like this:
 
 ## CLI Options
 
-- `-e`: Module to enable in the configuration. Can be given multiple times.
-- `-i`: Line to add to the configuration's `imports` list verbatim. Can be given multiple times.
-- `-a`: Line to add to the build arguments verbatim, will be terminated by `;`. Can be given multiple times.
-- `-p`: Override the nixpkgs flake.
-- `-l`: Override the home-manager flake.
-- `-b`: Do not import `homeManagerProfiles.$USER` even if it exists.
-- `-n`: Only write the temporary flake and exit.
-- `-v`: Verbose output.
+See [cli.txt](cli.txt).
