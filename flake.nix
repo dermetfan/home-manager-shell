@@ -1,7 +1,7 @@
 {
   inputs = {
     # needs proot 5.3.0 that fixes crashes
-    nixpkgs.url = github:NixOS/nixpkgs;
+    nixpkgs.url = github:NixOS/nixpkgs/release-22.05;
     flake-utils.url = github:numtide/flake-utils;
     home-manager = {
       url = github:nix-community/home-manager;
