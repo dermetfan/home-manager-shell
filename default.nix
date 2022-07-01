@@ -23,14 +23,15 @@ in
             echo
             #shellcheck disable=SC2016
             echo ${
-              lib.pipe ./cli.txt [
-                lib.fileContents
-                (lib.splitString "\n")
-                (map (line: "\t" + line))
-                (lib.concatStringsSep "\n")
-                lib.escapeShellArg
-              ]
-            }
+          # https://github.com/kamadorueda/alejandra/issues/242
+          lib.pipe ./cli.txt [
+            lib.fileContents
+            (lib.splitString "\n")
+            (map (line: "\t" + line))
+            (lib.concatStringsSep "\n")
+            lib.escapeShellArg
+          ]
+        }
           } >&2
         }
 
