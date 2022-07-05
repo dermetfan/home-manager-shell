@@ -12,7 +12,7 @@
 in
   pkgs.writeShellApplication {
     name = "home-manager-shell";
-    runtimeInputs = with pkgs; [proot jq];
+    runtimeInputs = with pkgs; [proot jq findutils];
     text =
       ''
         declare -a enable imports args
