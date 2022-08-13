@@ -119,8 +119,7 @@ in
             inherit ($vars) args bare;
             inherit (args) system username;
           in rec {
-            defaultPackage.\''${system} = packages.\''${system}.default;
-            packages.\''${system}.default = (home-manager.lib.homeManagerConfiguration (
+            homeManagerConfigurations.default = home-manager.lib.homeManagerConfiguration (
               nixpkgs.lib.recursiveUpdate rec {
                 pkgs =
                   target.outputs.legacyPackages.\''${system} or
@@ -139,7 +138,10 @@ in
 
                 ''${args[*]}
               } args
-            )).activationPackage;
+            );
+
+            defaultPackage.\''${system} = packages.\''${system}.default;
+            packages.\''${system}.default = homeManagerConfigurations.default.activationPackage;
           };
         }
         EOF
@@ -148,6 +150,9 @@ in
 
         activationPackage=$(
           nix build --json --impure | jq -r '.[].outputs.out'
+        )
+        profileDirectory=$(
+          nix eval --raw --impure .#homeManagerConfigurations.default.config.home.profileDirectory
         )
 
         popd > /dev/null
@@ -166,9 +171,16 @@ in
 
         function launch {
           declare -a prootArgs
+
           while read -r; do
-            prootArgs+=(-b "$REPLY":"$HOME"/"''${REPLY#"$activationPackage"/home-files/}")
-          done < <(find "$activationPackage"/home-files/ -not -type d)
+            prootArgs+=(-b "$REPLY":"$HOME/''${REPLY#"$activationPackage/home-files/"}")
+          done < <(find "$activationPackage/home-files/" -not -type d)
+
+          prootArgs+=(-b "$activationPackage/home-path":"$profileDirectory")
+
+          __HM_SESS_VARS_SOURCED=
+          #shellcheck disable=SC1091
+          source "$activationPackage/home-path/etc/profile.d/hm-session-vars.sh"
 
           PATH="''${PATH:-}''${PATH:+:}"
           PATH="$PATH:$activationPackage/home-path/bin"
