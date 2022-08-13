@@ -14,8 +14,29 @@
     nixpkgs,
     flake-utils,
     home-manager,
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
+  }: let
+    commonPlatforms = with nixpkgs.lib;
+      flip pipe [
+        (map (p: p.meta.platforms))
+        (pp: builtins.foldl' intersectLists (head pp) (tail pp))
+      ];
+  in
+    flake-utils.lib.eachSystem
+    (
+      # Hard-coding the system is ok here because
+      # we only evaluate the `meta.platforms` attribute.
+      with nixpkgs.legacyPackages.x86_64-linux;
+        commonPlatforms [
+          proot
+
+          shellcheck
+          # shellcheck advertises platforms
+          # that it does not actually support
+          # because its dependencies don't
+          ghc
+        ]
+    )
+    (system: let
       pkgs = nixpkgs.legacyPackages.${system};
     in rec {
       packages = rec {
