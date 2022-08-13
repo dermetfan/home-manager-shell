@@ -11,6 +11,7 @@ As library:	github:your/flake#app [OPTION]…           [COMMAND]…
 		Example:	github:NixOS/nixpkgs/release-22.05
 -l	FLAKE	Override the home-manager flake.
 		Example:	github:nix-community/home-manager/release-22.05
+-d		Adjust XDG environment variables to `$HOME`.
 -b		Do not import `homeManagerProfiles.$USER` even if it exists.
 -n		Only write the temporary flake and exit.
 -v		Verbose output.

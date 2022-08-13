@@ -35,13 +35,14 @@ in
           } >&2
         }
 
-        while getopts :e:i:c:a:p:l:bnvh opt; do
+        while getopts :e:i:c:a:p:l:d:bnvh opt; do
           case "$opt" in
             e) enable+=("$OPTARG.enable = true;"$'\n') ;;
             i) imports+=("$OPTARG"$'\n') ;;
             a) args+=("$OPTARG;"$'\n') ;;
             p) nixpkgs="$OPTARG" ;;
             l) homeManager="$OPTARG" ;;
+            d) xdgHome="$OPTARG" ;;
             b) bare=1 ;;
             n) dry=1 ;;
             v) verbose=1 ;;
@@ -163,6 +164,15 @@ in
 
         cleanup
         trap EXIT
+
+        if [[ -n "''${xdgHome:-}" ]]; then
+          xdgHome="''${xdgHome%/}"
+
+          XDG_DATA_HOME="$HOME/''${XDG_DATA_HOME#$xdgHome}"
+          XDG_CACHE_HOME="$HOME/''${XDG_CACHE_HOME#$xdgHome}"
+          XDG_STATE_HOME="$HOME/''${XDG_STATE_HOME#$xdgHome}"
+          XDG_CONFIG_HOME="$HOME/''${XDG_CONFIG_HOME#$xdgHome}"
+        fi
 
         function launch {
           declare -a prootArgs
