@@ -15,9 +15,12 @@
       packages.home-manager-shell = home-manager-shell.lib {inherit self system;};
     })
     // {
-      homeManagerProfiles.nobody.programs.bat = {
-        enable = true;
-        config.style = "numbers";
+      homeManagerProfiles.foo.programs = {
+        bash.enable = true;
+        bat = {
+          enable = true;
+          config.style = "numbers";
+        };
       };
     };
 }

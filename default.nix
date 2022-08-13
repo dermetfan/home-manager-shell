@@ -35,13 +35,15 @@ in
           } >&2
         }
 
-        while getopts :e:i:c:a:p:l:bnvh opt; do
+        while getopts :e:i:c:a:p:l:U:H:bnvh opt; do
           case "$opt" in
             e) enable+=("$OPTARG.enable = true;"$'\n') ;;
             i) imports+=("$OPTARG"$'\n') ;;
             a) args+=("$OPTARG;"$'\n') ;;
             p) nixpkgs="$OPTARG" ;;
             l) homeManager="$OPTARG" ;;
+            U) user="$OPTARG" ;;
+            H) home="$OPTARG" ;;
             b) bare=1 ;;
             n) dry=1 ;;
             v) verbose=1 ;;
@@ -73,6 +75,9 @@ in
         if [[ -z "''${homeManager:-}" ]]; then
           homeManager=${lib.escapeShellArg home-manager}
         fi
+
+        user="''${user:-"$USER"}"
+        home="''${home:-"$HOME"}"
       ''
       + (
         if self != null
@@ -95,8 +100,8 @@ in
         vars=$(
           nix-instantiate --eval --strict \
             --argstr system ${lib.escapeShellArg system} \
-            --argstr username "$USER" \
-            --argstr homeDirectory "$HOME" \
+            --argstr username "$user" \
+            --argstr homeDirectory "$home" \
             --argstr args ${lib.escapeShellArg (__toJSON args)} \
             --argstr bare "''${bare:-}" \
             --expr '{ ... } @ args: {
@@ -173,7 +178,7 @@ in
           declare -a prootArgs
 
           while read -r; do
-            prootArgs+=(-b "$REPLY":"$HOME/''${REPLY#"$activationPackage/home-files/"}")
+            prootArgs+=(-b "$REPLY":"$home/''${REPLY#"$activationPackage/home-files/"}")
           done < <(find "$activationPackage/home-files/" -not -type d)
 
           prootArgs+=(-b "$activationPackage/home-path":"$profileDirectory")
@@ -181,6 +186,9 @@ in
           __HM_SESS_VARS_SOURCED=
           #shellcheck disable=SC1091
           source "$activationPackage/home-path/etc/profile.d/hm-session-vars.sh"
+
+          USER="$user"
+          HOME="$home"
 
           PATH="''${PATH:-}''${PATH:+:}"
           PATH="$PATH:$activationPackage/home-path/bin"

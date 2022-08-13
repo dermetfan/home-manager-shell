@@ -56,9 +56,13 @@
             extra-experimental-features = nix-command flakes
           '';
         } ''
-          mkdir home
-          export HOME="$PWD/home"
           export USER=nobody
+          export HOME="$PWD/home/$USER"
+          mkdir -p "$HOME"
+
+          user=foo
+          home="$PWD/home/$user"
+          mkdir "$home"
 
           cp -r ${self} src
           cd src
@@ -70,14 +74,21 @@
           substituteAllInPlace flake.nix
 
           nix run .#home-manager-shell --no-write-lock-file -- \
-            -i '{ home.file.test.text = "test"; }' \
-            cat \
-              ~/test <(echo) \
-              ~/.config/bat/config \
+            -U "$user" -H "$home" \
+            -i '{ home.file.user.text = config.home.username; }' \
+            -i '{ home.file.home.text = config.home.homeDirectory; }' \
+            bash -c '
+              HOME="'"$home"'"
+
+              cat ~/user; echo
+              cat ~/home; echo
+              cat ~/.config/bat/config
+            ' \
           | tee actual
 
           cat > expected <<EOF
-          test
+          $user
+          $home
           --style='numbers'
           EOF
 
