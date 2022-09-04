@@ -2,7 +2,7 @@
 
 Spawns a shell in a home-manager profile. Like nix-shell for home-manager.
 
-Builds your profile, sets `$PATH` to its `/bin`, and bind-mounts its files using [proot](https://proot-me.github.io/).
+Builds your profile, sets its env vars and `$PATH` to its `/bin`, and bind-mounts its files using [proot](https://proot-me.github.io/).
 
 ## Usage
 
@@ -10,13 +10,14 @@ If the target flake provides a module in the `homeManagerProfiles.$USER` output 
 
 Otherwise use `-i` to add custom imports. `self`, `config`, `lib`, and `pkgs` are available in its scope.
 
-You can set the `USER` and `HOME` environment variables to adapt the build to your current machine.
+Using `-U` and `-H` you can set username and home directory to adapt the build to your current machine.
+If not given, these default to the values of your current `USER` and `HOME` environment variables.
 
 ### Examples
 
 Use your home-manager profile on a friend's machine without installing it:
 
-	USER=my_user nix run sourcehut:~dermetfan/home-manager-shell github:your/flake
+	nix run sourcehut:~dermetfan/home-manager-shell -- -U my_user github:your/flake
 
 Try a friend's home-manager profile without installing it:
 
@@ -24,7 +25,7 @@ Try a friend's home-manager profile without installing it:
 
 Run in a temporary home directory ([library](#library) usage assumed for shorter example):
 
-	HOME=/tmp/test-home nix run github:your/flake#app
+	nix run github:your/flake#app -- -H /tmp/test-home
 
 ### Standalone
 
@@ -39,7 +40,7 @@ See the [example flake](example/flake.nix) on how to do this.
 
 Once you added such an app to your flake you can run it like this:
 
-	nix run github:your/flake#app [OPTION]… [COMMAND]…
+	nix run github:your/flake#app -- [OPTION]… [COMMAND]…
 
 ### CLI Options
 
