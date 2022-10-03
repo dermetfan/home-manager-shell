@@ -190,9 +190,8 @@ in
           USER="$user"
           HOME="$home"
 
-          PATH="''${PATH:-}''${PATH:+:}"
-          PATH="$PATH:$activationPackage/home-path/bin"
-          PATH="$PATH:$activationPackage/home-path/sbin"
+          PATH="$activationPackage/home-path/bin''${PATH:+:}''${PATH:-}"
+          PATH="$activationPackage/home-path/sbin''${PATH:+:}''${PATH:-}"
 
           exec proot \
             -R / \
