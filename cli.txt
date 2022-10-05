@@ -7,7 +7,7 @@ As library:	github:your/flake#app [OPTION]…           [COMMAND]…
 		Example:	programs.bat
 -i	LINE	Line to add to the configuration's `imports` list verbatim. Can be given multiple times.
 		Example:	{ home.file.foo.text = "bar"; }
--a	LINE	Line to add to the build arguments verbatim, will be terminated by `;`. Can be given multiple times.
+-a	LINE	Line to add to the `homeManagerConfiguration` build arguments verbatim, will be terminated by `;`. Can be given multiple times.
 		Example:	extraSpecialArgs.x = 1
 -p	FLAKE	Override the nixpkgs flake.
 		Example:	github:NixOS/nixpkgs/release-22.05
