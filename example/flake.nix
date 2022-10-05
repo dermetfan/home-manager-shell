@@ -12,7 +12,9 @@
     home-manager-shell,
   }:
     flake-utils.lib.eachDefaultSystem (system: {
-      packages.home-manager-shell = home-manager-shell.lib {inherit self system;};
+      apps.home-manager-shell = flake-utils.lib.mkApp {
+        drv = home-manager-shell.lib {inherit self system;};
+      };
     })
     // {
       homeManagerProfiles.foo.programs = {
