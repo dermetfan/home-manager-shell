@@ -4,6 +4,7 @@
   nixpkgs,
   home-manager,
   enable ? [],
+  disable ? [],
   imports ? [],
   args ? {},
 }: let
@@ -15,7 +16,7 @@ in
     runtimeInputs = with pkgs; [proot jq findutils];
     text =
       ''
-        declare -a enable imports args
+        declare -a enable disable imports args
 
         function usage {
           {
@@ -35,9 +36,10 @@ in
           } >&2
         }
 
-        while getopts :e:i:a:p:l:U:H:cbnvh opt; do
+        while getopts :e:E:i:a:p:l:U:H:cbnvh opt; do
           case "$opt" in
             e) enable+=("$OPTARG.enable = true;"$'\n') ;;
+            E) disable+=("$OPTARG.enable = false;"$'\n') ;;
             i) imports+=("$OPTARG"$'\n') ;;
             a) args+=("$OPTARG;"$'\n') ;;
             p) nixpkgs="$OPTARG" ;;
@@ -67,6 +69,7 @@ in
         fi
 
         enable+=(${lib.escapeShellArgs enable})
+        disable+=(${lib.escapeShellArgs disable})
         imports+=(${lib.escapeShellArgs imports})
 
         if [[ -z "''${nixpkgs:-}" ]]; then
@@ -148,6 +151,7 @@ in
                   );
 
                   ''${enable[*]}
+                  ''${disable[*]}
                 };
 
                 ''${args[*]}
