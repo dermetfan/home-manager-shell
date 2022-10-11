@@ -125,10 +125,13 @@ in
             inherit (args) system username;
           in rec {
             homeManagerConfigurations.default = home-manager.lib.homeManagerConfiguration (
-              nixpkgs.lib.recursiveUpdate rec {
-                pkgs =
+              let
+                targetPkgs =
                   target.outputs.legacyPackages.\''${system} or
                   nixpkgs.outputs.legacyPackages.\''${system};
+              in
+              nixpkgs.lib.recursiveUpdate rec {
+                pkgs = targetPkgs;
 
                 extraSpecialArgs.self = target;
 
@@ -137,6 +140,11 @@ in
                     lib.optional
                       (!bare && self.outputs.homeManagerProfiles.\''${username} or null != null)
                       self.outputs.homeManagerProfiles.\''${username};
+
+                  nixpkgs.config = lib.mkForce (
+                    targetPkgs.config //
+                    { allowUnfree = true; }
+                  );
 
                   ''${enable[*]}
                 };
