@@ -132,7 +132,7 @@ in
 
                 extraSpecialArgs.self = target;
 
-                configuration = { self, config, lib, pkgs, ... }: rec {
+                configuration = { self, options, config, lib, pkgs, ... }: rec {
                   imports = [ ''${imports[*]} ] ++
                     lib.optional
                       (!bare && self.outputs.homeManagerProfiles.\''${username} or null != null)
