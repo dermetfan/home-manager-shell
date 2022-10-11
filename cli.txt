@@ -3,7 +3,7 @@ As library:	github:your/flake#app [OPTION]…           [COMMAND]…
 
 -U	USER	Value to set for `home.username` and the USER environment variable. Also used to import `homeManagerProfiles.$USER`.
 -H	HOME	Value to set for `home.homeDirectory` and the HOME environment variable.
--e	MODULE	Module to enable in the configuration. Can be given multiple times.
+-e	MODULE	Module to enable in the configuration. Can be given multiple times. Implies `-d`.
 		Example:	programs.bat
 -E	MODULE	Module to disable in the configuration. Can be given multiple times.
 		Example:	programs.bat
@@ -16,6 +16,8 @@ As library:	github:your/flake#app [OPTION]…           [COMMAND]…
 -l	FLAKE	Override the home-manager flake.
 		Example:	github:nix-community/home-manager/release-22.05
 -c		Edit the generated flake with your `$EDITOR` before launching.
+-d		Disable all programs and services.
+-D		Do not disable all programs and services. Overrides an earlier `-d`.
 -b		Do not import `homeManagerProfiles.$USER` even if it exists.
 -n		Only write the generated flake and exit.
 -v		Verbose output.

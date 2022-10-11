@@ -36,16 +36,18 @@ in
           } >&2
         }
 
-        while getopts :e:E:i:a:p:l:U:H:cbnvh opt; do
+        while getopts :e:E:i:a:p:l:U:H:dDcbnvh opt; do
           case "$opt" in
-            e) enable+=("$OPTARG.enable = true;"$'\n') ;;
-            E) disable+=("$OPTARG.enable = false;"$'\n') ;;
+            e) enable+=("$OPTARG.enable = lib.mkOverride 30 true;"$'\n'); disableAll=1 ;;
+            E) disable+=("$OPTARG.enable = lib.mkOverride 30 false;"$'\n') ;;
             i) imports+=("$OPTARG"$'\n') ;;
             a) args+=("$OPTARG;"$'\n') ;;
             p) nixpkgs="$OPTARG" ;;
             l) homeManager="$OPTARG" ;;
             U) user="$OPTARG" ;;
             H) home="$OPTARG" ;;
+            d) disableAll=1 ;;
+            D) unset disableAll ;;
             c) interactive=1 ;;
             b) bare=1 ;;
             n) dry=1 ;;
@@ -108,11 +110,13 @@ in
             --argstr homeDirectory "$home" \
             --argstr args ${lib.escapeShellArg (__toJSON args)} \
             --argstr bare "''${bare:-}" \
+            --argstr disableAll "''${disableAll:-}" \
             --expr '{ ... } @ args: {
               args =
                 { inherit (args) system username homeDirectory; } //
                 __fromJSON args.args;
               bare = args.bare != "";
+              disableAll = args.disableAll != "";
             }'
         )
 
@@ -125,10 +129,10 @@ in
           };
 
           outputs = { target, nixpkgs, home-manager, ... }: let
-            inherit ($vars) args bare;
+            inherit ($vars) args bare disableAll;
             inherit (args) system username;
-          in rec {
-            homeManagerConfigurations.default = home-manager.lib.homeManagerConfiguration (
+
+            stage1Args = (
               let
                 targetPkgs =
                   target.outputs.legacyPackages.\''${system} or
@@ -149,14 +153,38 @@ in
                     targetPkgs.config //
                     { allowUnfree = true; }
                   );
-
-                  ''${enable[*]}
-                  ''${disable[*]}
                 };
 
                 ''${args[*]}
               } args
             );
+            stage1Eval = home-manager.lib.homeManagerConfiguration stage1Args;
+          in rec {
+            homeManagerConfigurations.default = home-manager.lib.homeManagerConfiguration (stage1Args // {
+              configuration = { lib, ... }: {
+                imports = [
+                  stage1Args.configuration
+                  {
+                    ''${enable[*]}
+                    ''${disable[*]}
+                  }
+                ];
+                config = lib.mkIf disableAll (
+                  let
+                    mapOptionsDisable = ns: {
+                      \''${ns} = builtins.mapAttrs
+                        (_: o: lib.optionalAttrs (o ? enable) {
+                          # we want to override \`mkForce\` which has prio 50
+                          enable = lib.mkOverride 40 false;
+                        })
+                        stage1Eval.options.\''${ns};
+                    };
+                  in
+                    mapOptionsDisable "programs" //
+                    mapOptionsDisable "services"
+                );
+              };
+            });
 
             defaultPackage.\''${system} = packages.\''${system}.default;
             packages.\''${system}.default = homeManagerConfigurations.default.activationPackage;
