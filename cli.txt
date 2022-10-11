@@ -13,6 +13,7 @@ As library:	github:your/flake#app [OPTION]…           [COMMAND]…
 		Example:	github:NixOS/nixpkgs/release-22.05
 -l	FLAKE	Override the home-manager flake.
 		Example:	github:nix-community/home-manager/release-22.05
+-c		Edit the generated flake with your `$EDITOR` before launching.
 -b		Do not import `homeManagerProfiles.$USER` even if it exists.
--n		Only write the temporary flake and exit.
+-n		Only write the generated flake and exit.
 -v		Verbose output.

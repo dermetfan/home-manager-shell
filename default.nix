@@ -35,7 +35,7 @@ in
           } >&2
         }
 
-        while getopts :e:i:c:a:p:l:U:H:bnvh opt; do
+        while getopts :e:i:a:p:l:U:H:cbnvh opt; do
           case "$opt" in
             e) enable+=("$OPTARG.enable = true;"$'\n') ;;
             i) imports+=("$OPTARG"$'\n') ;;
@@ -44,6 +44,7 @@ in
             l) homeManager="$OPTARG" ;;
             U) user="$OPTARG" ;;
             H) home="$OPTARG" ;;
+            c) interactive=1 ;;
             b) bare=1 ;;
             n) dry=1 ;;
             v) verbose=1 ;;
@@ -158,6 +159,10 @@ in
           };
         }
         EOF
+
+        if [[ -n "''${interactive:-}" ]]; then
+          "$EDITOR" flake.nix
+        fi
 
         nix flake lock
 
