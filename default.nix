@@ -112,9 +112,9 @@ in
             --argstr bare "''${bare:-}" \
             --argstr disableAll "''${disableAll:-}" \
             --expr '{ ... } @ args: {
-              args =
-                { inherit (args) system username homeDirectory; } //
-                __fromJSON args.args;
+              inherit (args) system;
+              module.home = { inherit (args) username homeDirectory; };
+              args = __fromJSON args.args;
               bare = args.bare != "";
               disableAll = args.disableAll != "";
             }'
@@ -129,8 +129,7 @@ in
           };
 
           outputs = { target, nixpkgs, home-manager, ... }: let
-            inherit ($vars) args bare disableAll;
-            inherit (args) system username;
+            inherit ($vars) args bare disableAll module system;
 
             stage1Args = (
               let
@@ -143,17 +142,26 @@ in
 
                 extraSpecialArgs.self = target;
 
-                configuration = { self, options, config, lib, pkgs, ... }: rec {
-                  imports = [ ''${imports[*]} ] ++
-                    lib.optional
-                      (!bare && self.outputs.homeManagerProfiles.\''${username} or null != null)
-                      self.outputs.homeManagerProfiles.\''${username};
+                modules = [
+                  module
 
-                  nixpkgs.config = lib.mkForce (
-                    targetPkgs.config //
-                    { allowUnfree = true; }
-                  );
-                };
+                  ({ self, options, config, lib, pkgs, ... }: {
+                    imports =
+                      [ ''${imports[*]} ] ++
+                      lib.optional
+                        (!bare && self.outputs.homeManagerProfiles.\''${module.home.username} or null != null)
+                        self.outputs.homeManagerProfiles.\''${module.home.username};
+                  })
+
+                  ({ lib, ... }: {
+                    nixpkgs.config = lib.mkForce (
+                      targetPkgs.config //
+                      { allowUnfree = true; }
+                    );
+
+                    home.stateVersion = with lib; versions.majorMinor version;
+                  })
+                ];
 
                 ''${args[*]}
               } args
@@ -161,29 +169,31 @@ in
             stage1Eval = home-manager.lib.homeManagerConfiguration stage1Args;
           in rec {
             homeManagerConfigurations.default = home-manager.lib.homeManagerConfiguration (stage1Args // {
-              configuration = { lib, ... }: {
-                imports = [
-                  stage1Args.configuration
-                  {
+              modules = stage1Args.modules ++ [
+                ({ lib, ... }: {
+                  config = {
                     ''${enable[*]}
                     ''${disable[*]}
-                  }
-                ];
-                config = lib.mkIf disableAll (
-                  let
-                    mapOptionsDisable = ns: {
-                      \''${ns} = builtins.mapAttrs
-                        (_: o: lib.optionalAttrs (o ? enable) {
-                          # we want to override \`mkForce\` which has prio 50
-                          enable = lib.mkOverride 40 false;
-                        })
-                        stage1Eval.options.\''${ns};
-                    };
-                  in
-                    mapOptionsDisable "programs" //
-                    mapOptionsDisable "services"
-                );
-              };
+                  };
+                })
+
+                ({ lib, ... }: {
+                  config = lib.mkIf disableAll (
+                    let
+                      mapOptionsDisable = ns: {
+                        \''${ns} = builtins.mapAttrs
+                          (_: o: lib.optionalAttrs (o ? enable) {
+                            # we want to override \`mkForce\` which has prio 50
+                            enable = lib.mkOverride 40 false;
+                          })
+                          stage1Eval.options.\''${ns};
+                      };
+                    in
+                      mapOptionsDisable "programs" //
+                      mapOptionsDisable "services"
+                  );
+                })
+              ];
             });
 
             defaultPackage.\''${system} = packages.\''${system}.default;
