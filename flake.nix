@@ -77,6 +77,7 @@
             -U "$user" -H "$home" \
             -i '{ home.file.user.text = config.home.username; }' \
             -i '{ home.file.home.text = config.home.homeDirectory; }' \
+            -d \
             bash -c '
               HOME="'"$home"'"
 
