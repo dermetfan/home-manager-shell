@@ -181,12 +181,14 @@ in
                   config = lib.mkIf disableAll (
                     let
                       mapOptionsDisable = ns: {
-                        \''${ns} = builtins.mapAttrs
-                          (_: o: lib.optionalAttrs (o ? enable && o.visible or false) {
+                        \''${ns} = lib.filterAttrs (_: v: v != null) (
+                          builtins.mapAttrs
+                          (_: o: if o ? enable && o.visible or false then {
                             # we want to override \`mkForce\` which has prio 50
                             enable = lib.mkOverride 40 false;
-                          })
-                          stage1Eval.options.\''${ns};
+                          } else null)
+                          stage1Eval.options.\''${ns}
+                        );
                       };
                     in
                       mapOptionsDisable "programs" //
