@@ -160,6 +160,10 @@ in
                     );
 
                     home.stateVersion = with lib; versions.majorMinor version;
+
+                    # Disable by default because the \`nix.conf\` check fails if \`nix.package\` is not set.
+                    # We want to override \`lib.mkOptionDefault\` at priority 1500 but not \`lib.mkDefault\` at priority 1000.
+                    nix.enable = lib.mkOverride 1400 false;
                   })
                 ];
 
