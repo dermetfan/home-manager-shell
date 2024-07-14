@@ -13,15 +13,20 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: {
       apps.home-manager-shell = flake-utils.lib.mkApp {
-        drv = home-manager-shell.lib {inherit self system;};
+        drv = home-manager-shell.lib {
+          inherit self system;
+          args.extraSpecialArgs.batStyle = "numbers";
+        };
       };
     })
     // {
-      homeManagerProfiles.foo.programs = {
-        bash.enable = true;
-        bat = {
-          enable = true;
-          config.style = "numbers";
+      homeManagerProfiles.foo = {batStyle, ...}: {
+        programs = {
+          bash.enable = true;
+          bat = {
+            enable = true;
+            config.style = batStyle;
+          };
         };
       };
     };
